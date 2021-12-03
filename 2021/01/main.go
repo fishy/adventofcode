@@ -2,14 +2,11 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 )
-
-var n = flag.Int("n", 3, "size of sliding window")
 
 type ringBuffer struct {
 	n      int
@@ -39,21 +36,22 @@ func (rb *ringBuffer) replace(v int64) (prev int64) {
 }
 
 func main() {
-	flag.Parse()
-	scanner := bufio.NewScanner(strings.NewReader(input))
-	rb := newRingBuffer(*n)
-	var count int
-	for scanner.Scan() {
-		curr, err := strconv.ParseInt(scanner.Text(), 10, 64)
-		if err != nil {
-			continue
+	for _, n := range []int{1, 3} {
+		scanner := bufio.NewScanner(strings.NewReader(input))
+		rb := newRingBuffer(n)
+		var count int
+		for scanner.Scan() {
+			curr, err := strconv.ParseInt(scanner.Text(), 10, 64)
+			if err != nil {
+				continue
+			}
+			last := rb.replace(curr)
+			if curr > last {
+				count++
+			}
 		}
-		last := rb.replace(curr)
-		if curr > last {
-			count++
-		}
+		fmt.Println(count)
 	}
-	fmt.Println(count)
 }
 
 const input = `
