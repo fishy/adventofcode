@@ -76,6 +76,7 @@ func part2(all []string, selector func(comparator int) byte) int {
 			}
 		}
 		left = filtered
+		fmt.Printf("i=%d, len=%d\n", i, len(left))
 		if len(left) == 1 {
 			v, err := strconv.ParseInt(left[0], 2, 64)
 			if err != nil {
