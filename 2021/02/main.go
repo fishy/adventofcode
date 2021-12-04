@@ -11,7 +11,7 @@ func main() {
 	var horizontal, aim, depth int64
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
-		parts := strings.Split(scanner.Text(), " ")
+		parts := strings.Fields(scanner.Text())
 		if len(parts) != 2 {
 			continue
 		}
