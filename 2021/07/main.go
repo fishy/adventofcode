@@ -8,8 +8,6 @@ import (
 	"strings"
 )
 
-const delta = 3
-
 func readInts(s string) []int {
 	ss := strings.Split(s, ",")
 	ints := make([]int, 0, len(ss))
@@ -25,7 +23,7 @@ func readInts(s string) []int {
 	return ints
 }
 
-func fuel(target int, ints []int, calculator func(distance int) int) int {
+func fuel(target int, ints []int, delta int, calculator func(distance int) int) int {
 	var min = math.MaxInt64
 	for t := target - delta; t <= target+delta; t++ {
 		var n int
@@ -45,7 +43,7 @@ func main() {
 	fmt.Println(ints)
 
 	median := ints[len(ints)/2]
-	fmt.Println("final", fuel(median, ints, func(distance int) int {
+	fmt.Println("final", fuel(median, ints, 0, func(distance int) int {
 		return distance
 	}))
 
@@ -56,7 +54,7 @@ func main() {
 	average /= float64(len(ints))
 	fmt.Println(average)
 	average = math.Round(average)
-	fmt.Println("final", fuel(int(average), ints, func(distance int) int {
+	fmt.Println("final", fuel(int(average), ints, 3, func(distance int) int {
 		var n int
 		for i := 1; i <= distance; i++ {
 			n += i
