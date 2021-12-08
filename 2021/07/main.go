@@ -23,19 +23,50 @@ func readInts(s string) []int {
 	return ints
 }
 
-func fuel(target int, ints []int, delta int, calculator func(distance int) int) int {
-	var min = math.MaxInt64
-	for t := target - delta; t <= target+delta; t++ {
-		var n int
-		for _, i := range ints {
-			n += calculator(int(math.Abs(float64(i - t))))
+func fuel(target int, ints []int, calculator func(distance int) int) int {
+	var n int
+	for _, i := range ints {
+		n += calculator(int(math.Abs(float64(i - target))))
+	}
+	return n
+}
+
+func optimal(target int, ints []int, calculator func(distance int) int) (int, int) {
+	min := fuel(target, ints, calculator)
+	minTarget := target
+	base := min
+
+	t := target
+	last := base
+	for {
+		t--
+		n := fuel(t, ints, calculator)
+		if n >= last {
+			break
 		}
+		last = n
 		if n < min {
 			min = n
+			minTarget = t
 		}
-		fmt.Println(t, n)
 	}
-	return min
+
+	t = target
+	last = base
+	for {
+		t++
+		n := fuel(t, ints, calculator)
+		if n >= last {
+			break
+		}
+		last = n
+		if n < min {
+			min = n
+			minTarget = t
+		}
+	}
+
+	return minTarget, min
 }
 
 func main() {
@@ -43,7 +74,7 @@ func main() {
 	fmt.Println(ints)
 
 	median := ints[len(ints)/2]
-	fmt.Println("final", fuel(median, ints, 0, func(distance int) int {
+	fmt.Println(optimal(median, ints, func(distance int) int {
 		return distance
 	}))
 
@@ -54,7 +85,7 @@ func main() {
 	average /= float64(len(ints))
 	fmt.Println(average)
 	average = math.Round(average)
-	fmt.Println("final", fuel(int(average), ints, 3, func(distance int) int {
+	fmt.Println(optimal(int(average), ints, func(distance int) int {
 		var n int
 		for i := 1; i <= distance; i++ {
 			n += i
