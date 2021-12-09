@@ -52,10 +52,15 @@ func main() {
 		store(2, 4)               // len: 4
 		store(9, 8)               // len: 7
 		for i := 6; i <= 8; i++ { // len: 6, 0/6/9
-			if overlaps(f[i], reverse[1]) == 1 {
+			switch {
+			case overlaps(f[i], reverse[1]) == 1:
 				// 0 and 9 have 2 overlaps with 1, 6 has 1 overlap with 1
 				store(i, 6)
-				break
+			case overlaps(f[i], reverse[4]) == 4:
+				// 0 and 6 have 3 iverlaps with 4, 9 has 4 overlaps with 4
+				store(i, 9)
+			default:
+				store(i, 0)
 			}
 		}
 		for i := 3; i <= 5; i++ { // len: 5, 2/3/5
@@ -66,16 +71,6 @@ func main() {
 				store(i, 3)
 			default:
 				store(i, 2)
-			}
-		}
-		for i := 6; i <= 8; i++ { // len: 6, 0/6/9
-			if f[i] == reverse[6] {
-				continue
-			}
-			if overlaps(f[i], reverse[5]) == 5 {
-				store(i, 9)
-			} else {
-				store(i, 0)
 			}
 		}
 
