@@ -51,13 +51,13 @@ func main() {
 	var part1 int
 	var part2 []int
 	scanner := bufio.NewScanner(strings.NewReader(input))
+nextLine:
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
 		var s stack
-		var corrupt bool
 		for _, r := range line {
 			switch r {
 			case '(', '[', '{', '<':
@@ -68,19 +68,14 @@ func main() {
 			if !ok {
 				// should not happen
 				log.Printf("line %q does not have enough opening chunks\n", line)
-				corrupt = true
-				break
+				continue nextLine
 			}
 			closing := pairs[opening]
 			if closing != r {
 				// corrupt
 				part1 += scores[r]
-				corrupt = true
-				break
+				continue nextLine
 			}
-		}
-		if corrupt {
-			continue
 		}
 		var n int
 		for {
