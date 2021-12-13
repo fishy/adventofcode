@@ -30,6 +30,7 @@ func main() {
 	fmt.Println(len(points))
 	scanner = bufio.NewScanner(strings.NewReader(foldsInput))
 	var m map[coordinate]bool
+	var maxX, maxY int64
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if !strings.HasPrefix(line, foldPrefix) {
@@ -40,6 +41,9 @@ func main() {
 		var foldX bool
 		if line[0] == 'x' {
 			foldX = true
+			maxX = n
+		} else {
+			maxY = n
 		}
 		m = make(map[coordinate]bool)
 		for i, c := range points {
@@ -68,17 +72,8 @@ func main() {
 		fmt.Println(len(m))
 	}
 
-	var maxX, maxY int64
-	for c := range m {
-		if c.x > maxX {
-			maxX = c.x
-		}
-		if c.y > maxY {
-			maxY = c.y
-		}
-	}
-	for y := int64(0); y <= maxY; y++ {
-		for x := int64(0); x <= maxX; x++ {
+	for y := int64(0); y < maxY; y++ {
+		for x := int64(0); x < maxX; x++ {
 			if m[coordinate{x, y}] {
 				fmt.Print("#")
 			} else {
