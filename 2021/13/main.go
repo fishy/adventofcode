@@ -21,6 +21,9 @@ func main() {
 		line := strings.TrimSpace(scanner.Text())
 		split := strings.Split(line, ",")
 		if len(split) != 2 {
+			if len(points) > 0 {
+				break
+			}
 			continue
 		}
 		x, _ := strconv.ParseInt(split[0], 10, 64)
@@ -28,7 +31,6 @@ func main() {
 		points = append(points, coordinate{x, y})
 	}
 	fmt.Println(len(points))
-	scanner = bufio.NewScanner(strings.NewReader(foldsInput))
 	var m map[coordinate]bool
 	var maxX, maxY int64
 	for scanner.Scan() {
@@ -884,9 +886,7 @@ const input = `
 977,432
 711,399
 12,628
-`
 
-const foldsInput = `
 fold along x=655
 fold along y=447
 fold along x=327
