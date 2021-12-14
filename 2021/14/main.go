@@ -88,7 +88,7 @@ func main() {
 					v := make(countsMap)
 					v.merge(cache[makeKey(a, to)][s-1])
 					v.merge(cache[makeKey(to, b)][s-1])
-					v[to]-- // it overlaps and double counted
+					v[to]-- // overlaps and double counted
 					cache[key][s] = v
 				} else {
 					v := make(countsMap)
@@ -106,8 +106,8 @@ func main() {
 		for i := 1; i < len(start); i++ {
 			key := makeKey(start[i-1], start[i])
 			v := cache[key][nn]
-			v[start[i-1]]-- // overlaps and double counted
 			m.merge(v)
+			m[start[i-1]]-- // overlaps and double counted
 		}
 		fmt.Println(nn, m.toCounts().result(), m.toCounts())
 	}
