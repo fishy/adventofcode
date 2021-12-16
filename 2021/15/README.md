@@ -80,7 +80,7 @@ Visualize the (partial) routes and the big numbers they are walking around:
 2>1>4>1 8 8
 
 
-      1>2>1>1
+      1>2>1>2
       ^     v
 4>1>3>3 9   3
 
