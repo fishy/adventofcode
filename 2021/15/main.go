@@ -23,6 +23,21 @@ type step struct {
 	cost int
 }
 
+func printRoute(min map[point]step, target point) string {
+	steps := []point{target}
+	current := target
+	end := point{0, 0}
+	for current != end {
+		current = min[current].p
+		steps = append(steps, current)
+	}
+	strs := make([]string, 0, len(steps))
+	for i := len(steps) - 1; i >= 0; i-- {
+		strs = append(strs, fmt.Sprintf("{%d,%d}", steps[i].x, steps[i].y))
+	}
+	return strings.Join(strs, "->")
+}
+
 func resolve(m [][]int) int {
 	target := point{
 		x: len(m) - 1,
@@ -33,7 +48,7 @@ func resolve(m [][]int) int {
 		cost: 0,
 	}
 	current := []step{start}
-	min := make(map[point]int)
+	min := make(map[point]step)
 	for steps := 0; ; steps++ {
 		var next []step
 		for _, c := range current {
@@ -50,32 +65,39 @@ func resolve(m [][]int) int {
 				}
 				cost := c.cost + m[p.x][p.y]
 				if v, ok := min[p]; ok {
-					if cost >= v {
+					if cost >= v.cost {
 						continue
 					}
 				}
-				s := step{
-					p:    p,
+				min[p] = step{
+					p:    c.p,
 					cost: cost,
 				}
-				min[p] = cost
-				next = append(next, s)
+				next = append(next, step{
+					p:    p,
+					cost: cost,
+				})
 			}
 		}
 		if len(next) == 0 {
-			return min[target]
+			fmt.Println(printRoute(min, target))
+			return min[target].cost
 		}
 		sort.Slice(next, func(i, j int) bool {
 			return next[i].cost < next[j].cost
 		})
 		current = next
-		furthest := current[0].p
-		for i := 1; i < len(current); i++ {
-			if current[i].p.x+current[i].p.y > furthest.x+furthest.y {
-				furthest = current[i].p
+
+		/*
+			// uncomment to print out progress of each step
+			furthest := current[0].p
+			for i := 1; i < len(current); i++ {
+				if current[i].p.x+current[i].p.y > furthest.x+furthest.y {
+					furthest = current[i].p
+				}
 			}
-		}
-		fmt.Printf("step %d: furthest %v, size %d\n", steps, furthest, len(current))
+			fmt.Printf("step %d: furthest %v, size %d\n", steps, furthest, len(current))
+		*/
 	}
 }
 
@@ -109,6 +131,16 @@ func enlarge(m [][]int, n int) [][]int {
 	return mm
 }
 
+func partialMap(m [][]int, delta int, x, y int) {
+	fmt.Printf("{%d,%d}:\n", x-delta, y-delta)
+	for i := x - delta; i <= x+delta; i++ {
+		for j := y - delta; j <= y+delta; j++ {
+			fmt.Print(m[i][j])
+		}
+		fmt.Println()
+	}
+}
+
 func main() {
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	var m [][]int
@@ -126,6 +158,10 @@ func main() {
 	fmt.Println(resolve(m))
 
 	mm := enlarge(m, 5)
+	partialMap(mm, 3, 38, 25)
+	partialMap(mm, 3, 117, 68)
+	partialMap(mm, 3, 182, 148)
+	partialMap(mm, 3, 355, 343)
 	fmt.Println(resolve(mm))
 }
 
