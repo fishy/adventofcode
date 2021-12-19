@@ -40,19 +40,6 @@ func (p point) transform(transforms [nDimensions]dimensionTransform) point {
 	return r
 }
 
-func (p point) reverse(transforms [nDimensions]dimensionTransform) point {
-	var r point
-	for i, t := range transforms {
-		j := t.dimension
-		r[i] = p[j]
-		if t.flip {
-			r[i] = -r[i]
-		}
-		r[i] -= t.diff
-	}
-	return r
-}
-
 type dimensionTransform struct {
 	dimension int
 	diff      int
@@ -139,9 +126,9 @@ func (s scanner) overlap(o scanner) []dimensionTransform {
 										p2 = o.beacons[j]
 										break
 									}
-									p2 = p2.reverse(transforms)
+									p2 = p2.transform(transforms)
 									for k := 0; k < nDimensions; k++ {
-										transforms[k].diff = p2[k] - p1[k]
+										transforms[k].diff = p1[k] - p2[k]
 									}
 									return transforms[:]
 								}
@@ -161,9 +148,17 @@ func (s *scanner) transform(transforms []dimensionTransform) {
 		t[i] = transforms[i]
 	}
 	for i := range s.beacons {
-		s.beacons[i] = s.beacons[i].reverse(t)
+		s.beacons[i] = s.beacons[i].transform(t)
 	}
 	s.buildDistances()
+}
+
+func md(a, b point) int {
+	var n int
+	for k := 0; k < nDimensions; k++ {
+		n += int(math.Abs(float64(a[k] - b[k])))
+	}
+	return n
 }
 
 func main() {
@@ -197,6 +192,7 @@ func main() {
 	scanners[0].p = &point{0, 0, 0}
 	beacons := make([]point, 0, totalReadings)
 	beacons = append(beacons, scanners[0].beacons...)
+	var maxMD int
 	for len(convertedScanners) < nScanners {
 		for i := range convertedScanners {
 			for j := range scanners {
@@ -212,10 +208,20 @@ func main() {
 				convertedScanners[j] = true
 				var p point
 				for k := 0; k < nDimensions; k++ {
-					p[k] = -t[k].diff
+					p[k] = t[k].diff
 				}
 				scanners[j].p = &p
 				fmt.Printf("Found %2d against %2d: %17v, %+v\n", j, i, p, t)
+				for i := range convertedScanners {
+					if i == j {
+						continue
+					}
+					d := md(*scanners[i].p, *scanners[j].p)
+					if d > maxMD {
+						maxMD = d
+						fmt.Printf("md(%d, %d) = %d\n", i, j, d)
+					}
+				}
 			}
 		}
 	}
@@ -229,30 +235,16 @@ func main() {
 		return false
 	})
 	last := beacons[0]
-	var uniq []point
-	uniq = append(uniq, last)
+	uniq := 1
 	for i := 1; i < len(beacons); i++ {
 		if beacons[i] == last {
 			continue
 		}
 		last = beacons[i]
-		uniq = append(uniq, last)
+		uniq++
 	}
-	fmt.Println(len(uniq))
-
-	var maxManhattanDistance int
-	for i := range scanners {
-		for j := i + 1; j < len(scanners); j++ {
-			var md int
-			for k := 0; k < nDimensions; k++ {
-				md += int(math.Abs(float64(scanners[i].p[k] - scanners[j].p[k])))
-			}
-			if md > maxManhattanDistance {
-				maxManhattanDistance = md
-				fmt.Println(md, *scanners[i].p, *scanners[j].p)
-			}
-		}
-	}
+	fmt.Println(uniq)
+	fmt.Println(maxMD)
 }
 
 const input = `
