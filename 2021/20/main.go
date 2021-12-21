@@ -36,7 +36,7 @@ func enlarge(m [][]int, extra int, fill int) [][]int {
 }
 
 func iterate(m [][]int, table []int, fill int) [][]int {
-	m = enlarge(m, 2, fill)
+	m = enlarge(m, 1, fill)
 	r := make([][]int, len(m))
 	for i := range m {
 		r[i] = make([]int, len(m[0]))
