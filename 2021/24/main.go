@@ -71,12 +71,27 @@ func (v variable) String() string {
 	return string([]rune{rune(v) + 'w'})
 }
 
+type instruction interface {
+	String() string
+
+	execute(vars *variables, input int)
+	binary() *binary
+}
+
 type inp struct {
 	a value
 }
 
-func (i inp) String() string {
+func (i *inp) String() string {
 	return fmt.Sprintf("(inp %v)", i.a)
+}
+
+func (i *inp) execute(vars *variables, input int) {
+	i.a.set(vars, input)
+}
+
+func (*inp) binary() *binary {
+	return nil
 }
 
 type binary struct {
@@ -84,12 +99,37 @@ type binary struct {
 	a, b     value
 }
 
-func (b binary) String() string {
+func (b *binary) String() string {
 	return fmt.Sprintf("(%s %v %v)", b.operator, b.a, b.b)
 }
 
-func readInput(input string) []interface{} {
-	var instructions []interface{}
+func (b *binary) binary() *binary {
+	return b
+}
+
+func (b *binary) execute(vars *variables, _ int) {
+	var n int
+	left := b.a.get(vars)
+	right := b.b.get(vars)
+	switch b.operator {
+	case "add":
+		n = left + right
+	case "mul":
+		n = left * right
+	case "div":
+		n = left / right
+	case "mod":
+		n = left % right
+	case "eql":
+		if left == right {
+			n = 1
+		}
+	}
+	b.a.set(vars, n)
+}
+
+func readInput(input string) []instruction {
+	var instructions []instruction
 	scanner := bufio.NewScanner(strings.NewReader(input))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -111,26 +151,22 @@ func readInput(input string) []interface{} {
 	return instructions
 }
 
-func printDiff(instructions []interface{}) {
+func printDiff(instructions []instruction) {
 	n := inputs
 	m := len(instructions) / n
 	fmt.Println(len(instructions), m*n)
 	for i := 0; i < m; i++ {
-		last := fmt.Sprintf("%v", instructions[i])
-		fmt.Printf("%v: %s\n", printIndex(i), last)
+		last := instructions[i].String()
+		fmt.Printf("%v: %v\n", printIndex(i), last)
 		for j := 1; j < n; j++ {
 			index := j*m + i
-			curr := fmt.Sprintf("%v", instructions[index])
+			curr := instructions[index].String()
 			if curr != last {
-				fmt.Printf("  %v: %s\n", printIndex(j), curr)
+				fmt.Printf("  %v: %v\n", printIndex(j), curr)
 			}
 			last = curr
 		}
 	}
-}
-
-type uniqVars struct {
-	x, y, z int
 }
 
 type stack []int
@@ -146,27 +182,26 @@ func (s *stack) pop() int {
 	return v
 }
 
-func generateVars(instructions []interface{}) (vars [inputs]uniqVars, ymap map[int]int) {
+const (
+	offsetX = 5
+	offsetY = 15
+)
+
+func generateYmap(instructions []instruction) map[int]int {
 	m := len(instructions) / inputs
+	ymap := make(map[int]int, inputs/2)
+	var s stack
 	for i := 0; i < inputs; i++ {
 		base := m * i
-		vars[i] = uniqVars{
-			z: instructions[base+4].(*binary).b.get(nil),
-			x: instructions[base+5].(*binary).b.get(nil),
-			y: instructions[base+15].(*binary).b.get(nil),
-		}
-	}
-	ymap = make(map[int]int, inputs/2)
-	var s stack
-	for i, v := range vars {
-		if v.x > 0 {
+		argX := instructions[base+offsetX].binary().b.get(nil)
+		if argX > 0 {
 			s.push(i)
 		} else {
 			j := s.pop()
-			ymap[j] = vars[i].x
+			ymap[j] = argX
 		}
 	}
-	return vars, ymap
+	return ymap
 }
 
 func chooseMin(min, max int) int {
@@ -178,21 +213,26 @@ func chooseMax(min, max int) int {
 }
 
 func resolve(
-	vars [inputs]uniqVars,
+	instructions []instruction,
 	ymap map[int]int,
 	choose func(min, max int) int,
 ) int {
-	var z int
+	var vars variables
 	var ws [inputs]int
-	for i, v := range vars {
+	m := len(instructions) / inputs
+	for i := 0; i < inputs; i++ {
+		base := m * i
 		min := 1
 		max := 9
-		if v.x < 0 {
-			w := z%26 + v.x
+
+		argX := instructions[base+offsetX].binary().b.get(&vars)
+		argY := instructions[base+offsetY].binary().b.get(&vars)
+		if argX < 0 {
+			w := vars[3]%26 + argX
 			min = w
 			max = w
 		} else {
-			sum := v.y + ymap[i]
+			sum := argY + ymap[i]
 			if sum < 0 {
 				min = 1 - sum
 			} else if sum > 0 {
@@ -202,24 +242,10 @@ func resolve(
 
 		w := choose(min, max)
 		ws[i] = w
-		x := z
-		x %= 26
-		z /= v.z
-		x += v.x
-		var y int
-		if x == w {
-			x = 0
-			y = 1
-		} else {
-			x = 1
-			y = 26
+		for _, ins := range instructions[base : base+m] {
+			ins.execute(&vars, w)
 		}
-		z *= y
-		y = w
-		y += v.y
-		y *= x
-		z += y
-		fmt.Println(printIndex(i), ws, printZ(z))
+		fmt.Println(printIndex(i), ws, printZ(vars[3]))
 	}
 	var n int
 	for _, w := range ws {
@@ -232,9 +258,10 @@ func resolve(
 func main() {
 	instructions := readInput(input)
 	printDiff(instructions)
-	vars, ymap := generateVars(instructions)
-	fmt.Println(resolve(vars, ymap, chooseMax))
-	fmt.Println(resolve(vars, ymap, chooseMin))
+	ymap := generateYmap(instructions)
+	fmt.Println(ymap)
+	fmt.Println(resolve(instructions, ymap, chooseMax))
+	fmt.Println(resolve(instructions, ymap, chooseMin))
 }
 
 const input = `
