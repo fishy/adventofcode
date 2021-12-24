@@ -9,8 +9,6 @@ import (
 
 const inputs = 14
 
-type variables [4]int
-
 func printZ(z int) string {
 	var zs string
 	for z > 0 {
@@ -24,9 +22,15 @@ func printIndex(index int) string {
 	return fmt.Sprintf("#%02d", index)
 }
 
+type variables [4]int
+
 func (v variables) String() string {
 	z := v[3]
 	return fmt.Sprintf("w:%2d x:%2d y:%2d z:%s", v[0], v[1], v[2], printZ(z))
+}
+
+func (v variables) z() int {
+	return v[3]
 }
 
 func readString(s string) value {
@@ -228,7 +232,7 @@ func resolve(
 		argX := instructions[base+offsetX].binary().b.get(&vars)
 		argY := instructions[base+offsetY].binary().b.get(&vars)
 		if argX < 0 {
-			w := vars[3]%26 + argX
+			w := vars.z()%26 + argX
 			min = w
 			max = w
 		} else {
