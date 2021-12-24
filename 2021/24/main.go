@@ -11,22 +11,22 @@ const inputs = 14
 
 type variables [4]int
 
-func printz(z int) string {
+func printZ(z int) string {
 	var zs string
 	for z > 0 {
-		zs = string([]byte{'a' + byte(z%26)}) + zs
+		zs = string([]rune{'a' + rune(z%26)}) + zs
 		z /= 26
 	}
 	return zs
 }
 
-func printlevel(level int) string {
-	return fmt.Sprintf("#%02d", level)
+func printIndex(index int) string {
+	return fmt.Sprintf("#%02d", index)
 }
 
 func (v variables) String() string {
 	z := v[3]
-	return fmt.Sprintf("w:%2d x:%2d y:%2d z:%s", v[0], v[1], v[2], printz(z))
+	return fmt.Sprintf("w:%2d x:%2d y:%2d z:%s", v[0], v[1], v[2], printZ(z))
 }
 
 func readString(s string) value {
@@ -117,121 +117,124 @@ func printDiff(instructions []interface{}) {
 	fmt.Println(len(instructions), m*n)
 	for i := 0; i < m; i++ {
 		last := fmt.Sprintf("%v", instructions[i])
-		fmt.Printf("%v: %s\n", printlevel(i), last)
+		fmt.Printf("%v: %s\n", printIndex(i), last)
 		for j := 1; j < n; j++ {
 			index := j*m + i
 			curr := fmt.Sprintf("%v", instructions[index])
 			if curr != last {
-				fmt.Printf("  %v: %s\n", printlevel(j), curr)
+				fmt.Printf("  %v: %s\n", printIndex(j), curr)
 			}
 			last = curr
 		}
 	}
 }
 
-func generateMods(instructions []interface{}) (mods [inputs][]int, ymap map[int]int) {
+type uniqVars struct {
+	x, y, z int
+}
+
+type stack []int
+
+func (s *stack) push(v int) {
+	*s = append(*s, v)
+}
+
+func (s *stack) pop() int {
+	index := len(*s) - 1
+	v := (*s)[index]
+	*s = (*s)[:index]
+	return v
+}
+
+func generateVars(instructions []interface{}) (vars [inputs]uniqVars, ymap map[int]int) {
 	m := len(instructions) / inputs
 	for i := 0; i < inputs; i++ {
 		base := m * i
-		mods[i] = []int{
-			instructions[base+4].(*binary).b.get(nil),
-			instructions[base+5].(*binary).b.get(nil),
-			instructions[base+15].(*binary).b.get(nil),
+		vars[i] = uniqVars{
+			z: instructions[base+4].(*binary).b.get(nil),
+			x: instructions[base+5].(*binary).b.get(nil),
+			y: instructions[base+15].(*binary).b.get(nil),
 		}
 	}
-	ymap = make(map[int]int)
-	var stack []int
-	for i, mod := range mods {
-		xmod := mod[1]
-		if xmod > 0 {
-			stack = append(stack, i)
+	ymap = make(map[int]int, inputs/2)
+	var s stack
+	for i, v := range vars {
+		if v.x > 0 {
+			s.push(i)
 		} else {
-			n := len(stack) - 1
-			j := stack[n]
-			stack = stack[:n]
-			ymap[j] = mods[i][1]
+			j := s.pop()
+			ymap[j] = vars[i].x
 		}
 	}
-	return mods, ymap
+	return vars, ymap
 }
 
-func min(min, max int) int {
+func chooseMin(min, max int) int {
 	return min
 }
 
-func max(min, max int) int {
+func chooseMax(min, max int) int {
 	return max
 }
 
 func resolve(
-	mods [inputs][]int,
+	vars [inputs]uniqVars,
 	ymap map[int]int,
-	choice func(min, max int) int,
-	z int,
-	level int,
-	ws [inputs]int,
+	choose func(min, max int) int,
 ) int {
-	if level >= inputs {
-		if z != 0 {
-			return 0
+	var z int
+	var ws [inputs]int
+	for i, v := range vars {
+		min := 1
+		max := 9
+		if v.x < 0 {
+			w := z%26 + v.x
+			min = w
+			max = w
+		} else {
+			sum := v.y + ymap[i]
+			if sum < 0 {
+				min = 1 - sum
+			} else if sum > 0 {
+				max = 9 - sum
+			}
 		}
-		var n int
-		for _, w := range ws {
-			n *= 10
-			n += w
-		}
-		return n
-	}
-	zmod := mods[level][0]
-	xmod := mods[level][1]
-	ymod := mods[level][2]
-	min := 1
-	max := 9
-	if xmod < 0 {
-		w := z%26 + xmod
-		if w < 1 || w > 9 {
-			return 0
-		}
-		min = w
-		max = w
-	} else {
-		sum := ymod + ymap[level]
-		if sum < 0 {
-			min = 1 - sum
-		} else if sum > 0 {
-			max = 9 - sum
-		}
-	}
 
-	w := choice(min, max)
-	ws[level] = w
-	x := z
-	x %= 26
-	z /= zmod
-	x += xmod
-	var y int
-	if x == w {
-		x = 0
-		y = 1
-	} else {
-		x = 1
-		y = 26
+		w := choose(min, max)
+		ws[i] = w
+		x := z
+		x %= 26
+		z /= v.z
+		x += v.x
+		var y int
+		if x == w {
+			x = 0
+			y = 1
+		} else {
+			x = 1
+			y = 26
+		}
+		z *= y
+		y = w
+		y += v.y
+		y *= x
+		z += y
+		fmt.Println(printIndex(i), ws, printZ(z))
 	}
-	z *= y
-	y = w
-	y += ymod
-	y *= x
-	z += y
-	fmt.Println(printlevel(level), ws, printz(z))
-	return resolve(mods, ymap, choice, z, level+1, ws)
+	var n int
+	for _, w := range ws {
+		n *= 10
+		n += w
+	}
+	return n
 }
 
 func main() {
 	instructions := readInput(input)
 	printDiff(instructions)
-	mods, ymap := generateMods(instructions)
-	fmt.Println(resolve(mods, ymap, max, 0, 0, [inputs]int{}))
-	fmt.Println(resolve(mods, ymap, min, 0, 0, [inputs]int{}))
+	vars, ymap := generateVars(instructions)
+	fmt.Println(resolve(vars, ymap, chooseMax))
+	fmt.Println(resolve(vars, ymap, chooseMin))
 }
 
 const input = `
