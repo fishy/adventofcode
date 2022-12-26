@@ -8,48 +8,10 @@ import (
 	"github.com/fishy/adventofcode/utils"
 )
 
-type stack []byte
-
-func (s stack) String() string {
-	return string(s)
-}
-
-func (s *stack) reverse() {
-	n := len(*s)
-	o := make([]byte, n)
-	for i, ch := range *s {
-		o[n-i-1] = ch
-	}
-	*s = o
-}
-
-func (s *stack) pop() byte {
-	return s.popN(1)[0]
-}
-
-func (s *stack) popN(n int) []byte {
-	l := len(*s) - n
-	ret := (*s)[l:]
-	*s = (*s)[:l]
-	return ret
-}
-
-func (s *stack) push(ch byte) {
-	s.pushN([]byte{ch})
-}
-
-func (s *stack) pushN(n []byte) {
-	*s = append(*s, n...)
-}
-
-func (s stack) peek() byte {
-	return s[len(s)-1]
-}
-
 var lineRE = regexp.MustCompile(`move (\d+) from (\d+) to (\d+)`)
 
 func part1() {
-	stacks := make([]stack, nStacks+1)
+	stacks := make([]utils.Stack[byte], nStacks+1)
 	scanner := utils.NewScanner(input)
 	scanner.Scan()
 	for scanner.Scan() {
@@ -70,7 +32,7 @@ func part1() {
 		}
 	}
 	for i := 1; i <= nStacks; i++ {
-		stacks[i].reverse()
+		utils.Reverse(stacks[i])
 	}
 	scanner.Scan()
 	for scanner.Scan() {
@@ -79,19 +41,19 @@ func part1() {
 		from := utils.Must(strconv.ParseInt(groups[2], 10, 64))
 		to := utils.Must(strconv.ParseInt(groups[3], 10, 64))
 		for i := 0; i < int(n); i++ {
-			stacks[to].push(stacks[from].pop())
+			stacks[to].Push(stacks[from].Pop())
 		}
 	}
 
 	var s []byte
 	for i := 1; i <= nStacks; i++ {
-		s = append(s, stacks[i].peek())
+		s = append(s, stacks[i].Peek())
 	}
 	fmt.Println(string(s))
 }
 
 func part2() {
-	stacks := make([]stack, nStacks+1)
+	stacks := make([]utils.Stack[byte], nStacks+1)
 	scanner := utils.NewScanner(input)
 	scanner.Scan()
 	for scanner.Scan() {
@@ -112,7 +74,7 @@ func part2() {
 		}
 	}
 	for i := 1; i <= nStacks; i++ {
-		stacks[i].reverse()
+		utils.Reverse(stacks[i])
 	}
 	scanner.Scan()
 	for scanner.Scan() {
@@ -120,12 +82,12 @@ func part2() {
 		n := utils.Must(strconv.ParseInt(groups[1], 10, 64))
 		from := utils.Must(strconv.ParseInt(groups[2], 10, 64))
 		to := utils.Must(strconv.ParseInt(groups[3], 10, 64))
-		stacks[to].pushN(stacks[from].popN(int(n)))
+		stacks[to].PushN(stacks[from].PopN(int(n)))
 	}
 
 	var s []byte
 	for i := 1; i <= nStacks; i++ {
-		s = append(s, stacks[i].peek())
+		s = append(s, stacks[i].Peek())
 	}
 	fmt.Println(string(s))
 }
